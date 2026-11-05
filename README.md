@@ -66,7 +66,7 @@ Run `knowledge-sync` on a schedule to keep the vault synced. See [cmd/rem](cmd/r
 | `KNOWLEDGE_REMOTE` | `origin` | Remote for `knowledge-sync` and `rem sync` |
 | `KNOWLEDGE_BRANCH` | `main` | Branch for `knowledge-sync` |
 | `KNOWLEDGE_CONF` | `~/.config/rem/memsearch.conf` | Optional shell file that sets the vault and memsearch paths |
-| `REM_PRIVATE_PROJECTS` | `personal` | Comma-separated project or folder names whose session text never enters another session's context |
+| `REM_PRIVATE_PROJECTS` | `personal,telegram` | Comma-separated markers; a session whose project name or folder contains one keeps its metadata but loses its text in other sessions' context |
 | `REM_HOME` | `~/.local/share/rem` | Where the Pi and OMP modules look for the hook |
 | `AGENTSVIEW_BIN`, `CCD_SESSIONS_BIN` | found on `PATH` | Tool overrides |
 

@@ -32,10 +32,10 @@ LAZY_SYNC_MAX_AGE_SECS = 12 * 3600
 PINS_LIMIT = 10
 PINS_TIMEOUT_SECS = 3
 PINS_REMOTE_MAX_AGE_SECS = 3600
-# Session text from these projects never enters another session's context.
+# SessionStart leaves out session text when a project name or cwd segment contains one of these.
 PRIVATE_PROJECTS = {
     name.strip().casefold()
-    for name in os.environ.get("REM_PRIVATE_PROJECTS", "personal").split(",")
+    for name in os.environ.get("REM_PRIVATE_PROJECTS", "personal,telegram").split(",")
     if name.strip()
 }
 
@@ -234,7 +234,9 @@ def recent_sessions() -> list[dict[str, Any]]:
     sessions = data.get("sessions") if isinstance(data, dict) else None
     if not isinstance(sessions, list):
         raise AgentsViewUnavailable("agentsview session list JSON has no sessions array")
-    return [session for session in sessions if isinstance(session, dict)]
+    # AgentsView v0.46 reports `machine` as an installation ID; the display label sits beside the list.
+    labels = data.get("machine_labels") or {}
+    return [dict(session, machine=labels.get(session.get("machine"), session.get("machine"))) for session in sessions if isinstance(session, dict)]
 
 
 def local_time(value: Any) -> str:
@@ -249,7 +251,7 @@ def local_time(value: Any) -> str:
 
 def is_private(project: Any, cwd: Any) -> bool:
     names = {str(project or ""), *Path(str(cwd or "")).parts}
-    return any(name.casefold() in PRIVATE_PROJECTS for name in names)
+    return any(marker in name.casefold() for name in names for marker in PRIVATE_PROJECTS)
 
 
 def format_session(session: dict[str, Any]) -> str:
@@ -402,6 +404,16 @@ def build_pins_context(pins: list[dict[str, Any]], exclude_id: str | None, max_c
     return header + "\n".join(lines)
 
 
+def compaction_note(session_id: str) -> str:
+    return (
+        f"This session was just compacted. Its full record stays in AgentsView as session {session_id}. "
+        "Before guessing a path, error, number or decision from before the summary, search that record: "
+        f"agentsview MCP `search_content` with `session_id: {session_id}`, `include_active: true` and `include_one_shot: true`, "
+        f"or `agentsview session export {session_id} | rg -o '.{{0,200}}<pattern>.{{0,200}}'`. "
+        "If this harness prefixes stored IDs, `search_sessions` with this `session_id` returns the full one."
+    )
+
+
 def session_start(stdin: TextIO = sys.stdin, stdout: TextIO = sys.stdout) -> int:
     try:
         payload = parse_payload(stdin)
@@ -409,6 +421,10 @@ def session_start(stdin: TextIO = sys.stdin, stdout: TextIO = sys.stdout) -> int
         return _error(str(exc))
     session_id = payload.get("session_id") or payload.get("sessionId")
     exclude = str(session_id) if session_id else None
+    # The recent-sessions list does not help recover the span just compacted.
+    if payload.get("source") == "compact" and exclude and agentsview_binary():
+        print(context_json(compaction_note(exclude)), file=stdout)
+        return 0
     note = staleness_note(*lazy_remote_sync())
     budget = MAX_CONTEXT_CHARS - (len(note) + 1 if note else 0)
     pins = build_pins_context(desktop_pins(), exclude, budget // 3)
