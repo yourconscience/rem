@@ -102,6 +102,9 @@ func main() {
 	}
 
 	if out, err := git(repo, "fetch", remote, branch); err != nil {
+		if skipIfOffline(out) {
+			return
+		}
 		fatal("git fetch", err, out)
 	}
 	if out, err := git(repo, "merge", "--no-edit", remote+"/"+branch); err != nil {
@@ -112,11 +115,14 @@ func main() {
 		fatal("git merge", err, "created conflict branch "+conflict+"\n")
 	}
 	if out, err := git(repo, "push", remote, branch); err != nil {
+		if skipIfOffline(out) {
+			return
+		}
 		fatal("git push", err, out)
 	} else if strings.TrimSpace(out) != "" {
 		fmt.Print(out)
 	}
-	fmt.Println("knowledge-sync: ok")
+	fmt.Printf("%s knowledge-sync: ok\n", stamp())
 
 	// R2: the vault is now settled (pulled/merged/pushed); refresh the derived
 	// memsearch index. Best-effort and bounded so it never blocks the sync, and
@@ -312,6 +318,26 @@ func reindexTimeout() time.Duration {
 	return 120 * time.Second
 }
 
+func stamp() string {
+	return time.Now().Format(time.RFC3339)
+}
+
+// skipIfOffline reports whether git failed because this machine has no network,
+// as when launchd fires during a dark wake. That is not a sync failure: the next
+// run catches up. A timeout or refused connection stays a failure, since it can
+// also mean the remote is down.
+func skipIfOffline(out string) bool {
+	for _, line := range strings.Split(out, "\n") {
+		for _, marker := range []string{"Network is unreachable", "No route to host", "Could not resolve hostname"} {
+			if strings.Contains(line, marker) {
+				fmt.Printf("%s knowledge-sync: offline, skipped: %s\n", stamp(), strings.TrimSpace(line))
+				return true
+			}
+		}
+	}
+	return false
+}
+
 func getenv(k, def string) string {
 	if v := os.Getenv(k); v != "" {
 		return v
@@ -323,6 +349,6 @@ func fatal(step string, err error, out string) {
 	if out != "" {
 		fmt.Print(out)
 	}
-	fmt.Fprintf(os.Stderr, "knowledge-sync: %s failed: %v\n", step, err)
+	fmt.Fprintf(os.Stderr, "%s knowledge-sync: %s failed: %v\n", stamp(), step, err)
 	os.Exit(1)
 }

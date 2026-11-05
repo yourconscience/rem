@@ -27,13 +27,13 @@ Installing only copies files. No hook runs until you register it.
 
 ```bash
 mkdir -p ~/.config/skillshare/rem
-cp integrations/skillshare/* ~/.config/skillshare/rem/
+cp integrations/skillshare/session-start.* ~/.config/skillshare/rem/
 skillshare hooks add rem-session-start --file ~/.config/skillshare/rem/session-start.yaml
 skillshare hooks sync --dry-run
 skillshare hooks sync
 ```
 
-This covers Claude Code, Codex, Factory Droid, Pi and OMP. Delete the bindings you don't use. skillshare has no Hermes hook target, so register Hermes by hand.
+This covers Claude Code, Codex, Factory Droid, Pi and OMP. Delete the bindings you don't use. skillshare has no Hermes hook target, so register Hermes by hand. See [the companion setup](integrations/skillshare/README.md) for Codex roles and the `universal` target.
 
 ### By hand
 
