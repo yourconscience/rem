@@ -44,9 +44,10 @@ func usage() {
 	fmt.Fprint(os.Stderr, `rem - memory workflow for the knowledge vault
 
 usage:
-  rem add [-src harness] "<fact>"   capture a candidate fact to ai/YYYY-MM-DD.md
-  rem search "<query>"              semantic search (memsearch, collection ai)
-  rem dream [--apply]               consolidation report; --apply collapses exact dups
+  rem add [-src harness] "<fact>"   capture a note to memory/_inbox, searchable at once
+  rem search "<query>"              inbox matches plus semantic search (memsearch, collection ai)
+  rem dream [--apply]               v1 consolidation report; --apply collapses exact dups
+  rem dream --v2 [flags]            LLM dream over AgentsView transcripts, onto a vault branch
   rem sync                          commit+merge+push via guarded knowledge-sync
 `)
 }

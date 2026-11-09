@@ -2,8 +2,8 @@
 
 Review-first memory for coding agents, as a standalone package that works beside any config manager.
 
-- **Session start context:** a compact list of recent sessions from [AgentsView](https://github.com/kenn-io/agentsview), plus pinned Claude Desktop sessions when `ccd-sessions` is installed. Anything unavailable degrades to empty context.
-- **`rem`:** capture candidate facts, consolidate them into review reports, and search the vault. Candidates stay inert until you promote them.
+- **Session start context:** the head of the memory index (at most 4 KB), a compact list of recent sessions from [AgentsView](https://github.com/kenn-io/agentsview), and pinned Claude Desktop sessions when `ccd-sessions` is installed. Anything unavailable degrades to empty context.
+- **`rem`:** capture notes that are searchable at once, dream over past sessions onto a reviewable branch, and search the vault. Only a branch you merge reaches the memory sessions load.
 - **`knowledge-sync`:** guarded commit, merge and push for a git-backed vault, with a best-effort search reindex.
 - **Hermes bridge:** optional sync between Hermes memory and the vault.
 
@@ -50,9 +50,9 @@ For Hermes, add these to your Hermes hooks:
 
 ```bash
 rem add -src claude "prefers pnpm for Node work"
-rem dream           # report-only consolidation
-rem dream --apply   # guarded exact-duplicate cleanup
 rem search "preferences"
+rem dream --v2 --limit 10 --dry-run   # show what a dream would read
+rem dream --v2 --limit 10             # write a dream onto a vault branch
 rem sync
 ```
 
@@ -67,6 +67,9 @@ Run `knowledge-sync` on a schedule to keep the vault synced. See [cmd/rem](cmd/r
 | `KNOWLEDGE_BRANCH` | `main` | Branch for `knowledge-sync` |
 | `KNOWLEDGE_CONF` | `~/.config/rem/memsearch.conf` | Optional shell file that sets the vault and memsearch paths |
 | `REM_PRIVATE_PROJECTS` | `personal,telegram` | Comma-separated markers; a session whose project name or folder contains one keeps its metadata but loses its text in other sessions' context |
+| `REM_DREAM_RUNNER` | `claude` | Headless runner for `rem dream --v2`; only `claude` is supported so far |
+| `REM_DREAM_MODEL` | `haiku` | Model for the dream |
+| `REM_AGENTS_MD` | `~/.agents/AGENTS.md` | The file a dream reads and writes patches for |
 | `REM_HOME` | `~/.local/share/rem` | Where the Pi and OMP modules look for the hook |
 | `AGENTSVIEW_BIN`, `CCD_SESSIONS_BIN` | found on `PATH` | Tool overrides |
 

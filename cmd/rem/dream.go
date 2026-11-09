@@ -184,7 +184,10 @@ func suggestTarget(cl cluster) string {
 func cmdDream(args []string) error {
 	apply := false
 	var rest []string
-	for _, a := range args {
+	for i, a := range args {
+		if strings.TrimLeft(a, "-") == "v2" {
+			return dreamV2(append(args[:i:i], args[i+1:]...))
+		}
 		if strings.TrimLeft(a, "-") == "apply" {
 			apply = true
 			continue
