@@ -59,6 +59,7 @@ refresh_index_async() {
   (
     trap 'rm -f "$reindex_lock/pid" 2>/dev/null || true; rmdir "$reindex_lock" 2>/dev/null || true' EXIT
     set -- "$NOTES_DIR" "$PROFILE_DIR"
+    [ -d "$KNOWLEDGE_DIR/memory" ] && set -- "$@" "$KNOWLEDGE_DIR/memory"
     for path in "$SESSIONS_DIR"/*.md "$SESSIONS_DIR"/*.markdown; do
       [ -f "$path" ] && set -- "$@" "$path"
     done

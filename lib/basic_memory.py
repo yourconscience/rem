@@ -21,9 +21,10 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, TextIO
 
-from safety import truncate_redacted
+from safety import knowledge_dir_from_environment, redact_text, truncate_redacted
 
 MAX_CONTEXT_CHARS = 6000
+MEMORY_INDEX_MAX_BYTES = 4096
 RECENT_SINCE = "7d"
 RECENT_LIMIT = 12
 FIRST_MESSAGE_CHARS = 200
@@ -404,6 +405,44 @@ def build_pins_context(pins: list[dict[str, Any]], exclude_id: str | None, max_c
     return header + "\n".join(lines)
 
 
+def memory_index_context(cwd: Any, max_bytes: int = MEMORY_INDEX_MAX_BYTES) -> str:
+    """Head of memory/_index.md, the current project's sections first, cut on a line boundary."""
+    memory_dir = knowledge_dir_from_environment() / "memory"
+    try:
+        text = (memory_dir / "_index.md").read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return ""
+    preamble: list[str] = []
+    sections: list[list[str]] = []
+    for line in redact_text(text).splitlines():
+        if line.startswith("## "):
+            sections.append([line])
+        elif sections:
+            sections[-1].append(line)
+        else:
+            preamble.append(line)
+    cwd_parts = {part.casefold() for part in Path(str(cwd or "")).parts}
+
+    def is_current(section: list[str]) -> bool:
+        heading = section[0][3:].strip().casefold()
+        return heading.startswith("project:") and heading.removeprefix("project:").strip() in cwd_parts
+
+    ordered = preamble + [line for section in sorted(sections, key=is_current, reverse=True) for line in section]
+    header = (
+        f"Long-term memory index from {memory_dir}: reviewed pages, one per topic. "
+        "Read a page when a task touches its topic; `rem search` finds the rest.\n"
+    )
+    kept: list[str] = []
+    size = len(header.encode())
+    for line in ordered:
+        size += len(line.encode()) + 1
+        if size > max_bytes:
+            break
+        kept.append(line)
+    body = "\n".join(kept).strip()
+    return header + body if body else ""
+
+
 def compaction_note(session_id: str) -> str:
     return (
         f"This session was just compacted. Its full record stays in AgentsView as session {session_id}. "
@@ -421,9 +460,10 @@ def session_start(stdin: TextIO = sys.stdin, stdout: TextIO = sys.stdout) -> int
         return _error(str(exc))
     session_id = payload.get("session_id") or payload.get("sessionId")
     exclude = str(session_id) if session_id else None
+    index = memory_index_context(payload.get("cwd") or os.getcwd())
     # The recent-sessions list does not help recover the span just compacted.
     if payload.get("source") == "compact" and exclude and agentsview_binary():
-        print(context_json(compaction_note(exclude)), file=stdout)
+        print(context_json("\n\n".join(filter(None, [index, compaction_note(exclude)]))), file=stdout)
         return 0
     note = staleness_note(*lazy_remote_sync())
     budget = MAX_CONTEXT_CHARS - (len(note) + 1 if note else 0)
@@ -438,7 +478,7 @@ def session_start(stdin: TextIO = sys.stdin, stdout: TextIO = sys.stdout) -> int
         context = pins + ("\n" + context if context else "")
     if note:
         context = note + ("\n" + context if context else "")
-    print(context_json(context), file=stdout)
+    print(context_json("\n\n".join(filter(None, [index, context]))), file=stdout)
     return 0
 
 

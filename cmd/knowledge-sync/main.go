@@ -238,12 +238,17 @@ func reindexStateDir() string {
 }
 
 // reindexIndexPaths mirrors the capture side's scope: the notes and profile
-// directories plus every sessions/*.md and *.markdown file.
+// directories, the memory wiki when present, and every sessions/*.md and
+// *.markdown file.
 func reindexIndexPaths(knowledge string) []string {
 	notes := getenv("NOTES_DIR", filepath.Join(knowledge, "notes"))
 	profile := getenv("PROFILE_DIR", filepath.Join(knowledge, "profile"))
 	sessions := getenv("SESSIONS_DIR", filepath.Join(knowledge, "sessions"))
 	paths := []string{notes, profile}
+	memory := filepath.Join(knowledge, "memory")
+	if fi, err := os.Stat(memory); err == nil && fi.IsDir() {
+		paths = append(paths, memory)
+	}
 	for _, pat := range []string{"*.md", "*.markdown"} {
 		matches, _ := filepath.Glob(filepath.Join(sessions, pat))
 		for _, m := range matches {

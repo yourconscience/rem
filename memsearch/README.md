@@ -60,8 +60,9 @@ Both triggers honor the same contract so they stay coordinated and never step on
 each other (canonical definition: `memory/hooks/common.sh` `refresh_index_async`,
 mirrored by `knowledge-sync`):
 
-- **Scope:** the notes and profile directories plus every `sessions/*.md` and
-  `*.markdown` file, indexed into collection `ai` (incremental; only changed
+- **Scope:** the notes and profile directories, the `memory/` wiki when it
+  exists, plus every `sessions/*.md` and `*.markdown` file, indexed into
+  collection `ai` (incremental; only changed
   files are re-embedded). Paths resolve from `NOTES_DIR` / `PROFILE_DIR` /
   `SESSIONS_DIR`, defaulting under `KNOWLEDGE_DIR`.
 - **Idempotent:** re-running is safe; markdown is canonical. `ai` is pinned;

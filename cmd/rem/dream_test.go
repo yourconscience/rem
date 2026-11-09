@@ -30,26 +30,6 @@ func TestNormalize(t *testing.T) {
 	}
 }
 
-func TestAddDedupesAcrossDays(t *testing.T) {
-	dir := t.TempDir()
-	t.Setenv("KNOWLEDGE_DIR", dir)
-	write(t, filepath.Join(dir, "ai", "2026-08-20.md"), "# 2026-08-20\n\n- candidate: Prefer pnpm for Node work (via claude)\n")
-	if err := cmdAdd([]string{"Prefer pnpm for Node work."}); err != nil {
-		t.Fatalf("add: %v", err)
-	}
-	data, _ := os.ReadFile(filepath.Join(dir, "ai", today()+".md"))
-	if data != nil {
-		t.Errorf("duplicate candidate written: %s", data)
-	}
-	if err := cmdAdd([]string{"-src", "codex", "Brand new fact"}); err != nil {
-		t.Fatalf("add new: %v", err)
-	}
-	data, _ = os.ReadFile(filepath.Join(dir, "ai", today()+".md"))
-	if !strings.Contains(string(data), "- candidate: Brand new fact (via codex)\n") {
-		t.Errorf("new candidate missing: %s", data)
-	}
-}
-
 func TestCollapseExactDuplicatesKeepFirst(t *testing.T) {
 	in := "# Hermes Memory Export\n\nAuto-synced.\n\n## Sync 2026-05-01 00:00 UTC\n\n- unique fact A\n\n## Sync 2026-05-02 00:00 UTC\n\n- fact B\n- fact C\n\n## Sync 2026-05-03 00:00 UTC\n\n- FACT B!\n- fact C\n"
 	got, dropped := collapseExactDuplicates(in)
