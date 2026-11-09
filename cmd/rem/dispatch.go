@@ -19,15 +19,28 @@ func main() {
 		os.Exit(2)
 	}
 	var err error
+	args := os.Args[2:]
 	switch os.Args[1] {
 	case "add":
-		err = cmdAdd(os.Args[2:])
+		if helpRequested(args) {
+			usage()
+			return
+		}
+		err = cmdAdd(args)
 	case "search":
-		err = cmdSearch(os.Args[2:])
+		err = cmdSearch(args)
 	case "sync":
+		// sync commits and pushes, so a flag it doesn't know must not run it.
+		if len(args) > 0 {
+			usage()
+			if helpRequested(args) {
+				return
+			}
+			os.Exit(2)
+		}
 		err = cmdSync()
 	case "dream":
-		err = cmdDream(os.Args[2:])
+		err = cmdDream(args)
 	case "-h", "--help", "help":
 		usage()
 	default:
@@ -40,11 +53,25 @@ func main() {
 	}
 }
 
+// helpRequested reports whether -h or --help appears before a "--" terminator.
+func helpRequested(args []string) bool {
+	for _, a := range args {
+		if a == "--" {
+			return false
+		}
+		if a == "-h" || a == "--help" {
+			return true
+		}
+	}
+	return false
+}
+
 func usage() {
 	fmt.Fprint(os.Stderr, `rem - memory workflow for the knowledge vault
 
 usage:
-  rem add [-src harness] "<fact>"   capture a note to memory/_inbox, searchable at once
+  rem add [-src harness] [--] "<fact>"
+                                    capture a note to memory/_inbox, searchable at once
   rem search "<query>"              inbox matches plus semantic search (memsearch, collection ai)
   rem dream [--apply]               v1 consolidation report; --apply collapses exact dups
   rem dream --v2 [flags]            LLM dream over AgentsView transcripts, onto a vault branch
