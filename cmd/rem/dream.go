@@ -194,6 +194,10 @@ func cmdDream(args []string) error {
 		}
 		rest = append(rest, a)
 	}
+	if helpRequested(rest) {
+		usage()
+		return nil
+	}
 	if apply {
 		return dreamApply(rest)
 	}

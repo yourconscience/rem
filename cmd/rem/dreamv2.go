@@ -5,6 +5,7 @@ import (
 	"context"
 	_ "embed"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -102,6 +103,9 @@ func dreamV2(args []string) error {
 	var only multiFlag
 	fs.Var(&only, "session", "read this session id only (repeatable)")
 	if err := fs.Parse(args); err != nil {
+		if errors.Is(err, flag.ErrHelp) {
+			return nil
+		}
 		return err
 	}
 	if *parallel < 1 {

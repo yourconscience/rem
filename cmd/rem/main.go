@@ -55,12 +55,23 @@ func cmdAdd(args []string) error {
 	src := ""
 	var rest []string
 	for i := 0; i < len(args); i++ {
-		if args[i] == "-src" && i+1 < len(args) {
+		a := args[i]
+		switch {
+		case a == "--":
+			rest = append(rest, args[i+1:]...)
+			i = len(args)
+		case a == "-src" || a == "--src":
+			if i+1 == len(args) {
+				return fmt.Errorf("%s needs a harness name", a)
+			}
 			src = args[i+1]
 			i++
-			continue
+		case len(a) > 1 && strings.HasPrefix(a, "-"):
+			// A typo'd flag must not become a note; -- lets a fact start with "-".
+			return fmt.Errorf("unknown flag %q (put -- before a fact that starts with -)", a)
+		default:
+			rest = append(rest, a)
 		}
-		rest = append(rest, args[i])
 	}
 	fact := redactText(strings.TrimSpace(strings.Join(rest, " ")))
 	if fact == "" {
