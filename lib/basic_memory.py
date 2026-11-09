@@ -440,7 +440,7 @@ def memory_index_context(cwd: Any, max_bytes: int = MEMORY_INDEX_MAX_BYTES) -> s
             break
         kept.append(line)
     body = "\n".join(kept).strip()
-    return header + body if body else ""
+    return header + body if "[[" in body else ""
 
 
 def compaction_note(session_id: str) -> str:

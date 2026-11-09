@@ -304,11 +304,11 @@ func countAIDirs(root string) int {
 }
 
 func truncate(s string, n int) string {
-	s = strings.Join(strings.Fields(s), " ")
-	if len(s) <= n {
-		return s
+	runes := []rune(strings.Join(strings.Fields(s), " "))
+	if len(runes) <= n {
+		return string(runes)
 	}
-	return s[:n-3] + "..."
+	return string(runes[:n-3]) + "..."
 }
 
 // dreamApply performs the only unattended-safe write: collapsing byte-normalized
