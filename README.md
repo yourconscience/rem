@@ -18,6 +18,15 @@ Go 1.26+ and Python 3 to build and run. AgentsView and [memsearch](https://githu
 make install   # BINDIR=~/.local/bin, REM_HOME=~/.local/share/rem
 ```
 
+Release binaries ship the hooks embedded, so `go install` works too:
+
+```bash
+go install github.com/yourconscience/rem/cmd/rem@latest
+go install github.com/yourconscience/rem/cmd/knowledge-sync@latest
+rem install              # writes hooks/ and lib/ into $REM_HOME
+rem hook session-start   # prints the session-start hook command
+```
+
 Installing only copies files. No hook runs until you register it.
 
 ## Register the hook

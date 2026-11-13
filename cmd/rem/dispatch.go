@@ -41,6 +41,10 @@ func main() {
 		err = cmdSync()
 	case "dream":
 		err = cmdDream(args)
+	case "install":
+		err = cmdInstall(args)
+	case "hook":
+		err = cmdHook(args)
 	case "-h", "--help", "help":
 		usage()
 	default:
@@ -76,5 +80,7 @@ usage:
   rem dream [--apply]               v1 consolidation report; --apply collapses exact dups
   rem dream --v2 [flags]            LLM dream over AgentsView transcripts, onto a vault branch
   rem sync                          commit+merge+push via guarded knowledge-sync
+  rem install                       materialize hooks/ and lib/ into $REM_HOME
+  rem hook session-start            print the session-start hook command
 `)
 }
