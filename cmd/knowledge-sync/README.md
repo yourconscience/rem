@@ -4,16 +4,16 @@ Small Go helper that keeps the local knowledge vault synchronized with its confi
 
 Runtime is intentionally separate from this source tree:
 
-- source: `memory/tools/knowledge-sync/`
+- source: `cmd/knowledge-sync/`
 - installed executable: `~/.local/bin/knowledge-sync`
-- user LaunchAgent: `~/Library/LaunchAgents/ai.knowledge-sync.plist`
+- user LaunchAgent: `~/Library/LaunchAgents/knowledge-sync.plist`
 
 The LaunchAgent should point at the stable installed executable, not at this source directory. `make install` at the repo root builds it to `~/.local/bin`.
 
 Configuration is read from environment variables, with defaults in `main.go`:
 
 - `KNOWLEDGE_REPO`, default `$KNOWLEDGE_DIR` or `~/Workspace/knowledge`
-- `KNOWLEDGE_REMOTE`, default `origin`. If your vault pushes to a non-`origin` remote, set this env var to that remote name. The default was previously `vps`; installs that relied on that must now set `KNOWLEDGE_REMOTE=vps` explicitly.
+- `KNOWLEDGE_REMOTE`, default `origin`. If your vault pushes to a non-`origin` remote, set this env var to that remote name.
 - `KNOWLEDGE_BRANCH`, default `main`
 
 The helper uses a lock file under the knowledge repo git directory, commits dirty vault changes, fetches/merges from the remote branch, and pushes back to the same remote branch.
@@ -42,7 +42,7 @@ identity. To pin the identity for the unattended LaunchAgent, do **one** of:
 git -C ~/Workspace/knowledge config user.name  "Your Name"
 git -C ~/Workspace/knowledge config user.email "you@example.com"
 
-# b) or set the dedicated env in ~/Library/LaunchAgents/ai.knowledge-sync.plist
+# b) or set the dedicated env in ~/Library/LaunchAgents/knowledge-sync.plist
 #    KNOWLEDGE_GIT_AUTHOR_NAME / KNOWLEDGE_GIT_AUTHOR_EMAIL
 ```
 
@@ -51,7 +51,7 @@ git -C ~/Workspace/knowledge config user.email "you@example.com"
 After a successful pull/merge/push, `knowledge-sync` triggers a bounded,
 best-effort refresh of the derived `memsearch` index (collection `ai`) so the
 index tracks whatever the sync pulled in -- replacing a separate reindex cron.
-It mirrors the capture-side trigger (`memory/hooks/common.sh`
+It mirrors the capture-side trigger (`hooks/common.sh`
 `refresh_index_async`) exactly -- same `mkdir` lock at
 `${MEMSEARCH_STATE_DIR:-~/.memsearch/state}/reindex.lock`, same
 notes+profile+sessions scope -- so the two never index concurrently. It never

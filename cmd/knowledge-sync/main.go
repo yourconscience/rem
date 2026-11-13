@@ -179,7 +179,7 @@ func gitConfigValue(repo, key string) string {
 
 // reindexAfterSync runs a bounded, best-effort, non-overlapping memsearch index
 // refresh after the vault settles. It mirrors the capture-side trigger
-// (memory/hooks/common.sh refresh_index_async) exactly so the two mutually
+// (hooks/common.sh refresh_index_async) exactly so the two mutually
 // exclude: same lock path (MEMSEARCH_STATE_DIR/reindex.lock), same atomic
 // mkdir + pid + stale-recovery convention, and the same index scope
 // (notes + profile + sessions/*.md) into the canonical "ai" collection. It is a

@@ -1,0 +1,54 @@
+version: 2
+
+project_name: rem
+
+builds:
+  - id: rem
+    dir: cmd/rem
+    main: .
+    binary: rem
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - darwin
+      - linux
+    goarch:
+      - amd64
+      - arm64
+  - id: knowledge-sync
+    dir: cmd/knowledge-sync
+    main: .
+    binary: knowledge-sync
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - darwin
+      - linux
+    goarch:
+      - amd64
+      - arm64
+
+archives:
+  - id: default
+    formats: [tar.gz]
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+
+checksum:
+  name_template: checksums.txt
+
+brews:
+  - repository:
+      owner: yourconscience
+      name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
+    directory: Formula
+    description: "Review-first memory for coding agents"
+    homepage: "https://github.com/yourconscience/rem"
+    license: MIT
+
+changelog:
+  use: github
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"

@@ -389,7 +389,7 @@ func listDreamSessions(since string) ([]dreamSession, error) {
 }
 
 func isPrivateSession(project, cwd string) bool {
-	markers := getenvDefault("REM_PRIVATE_PROJECTS", "personal,telegram")
+	markers := getenvDefault("REM_PRIVATE_PROJECTS", "personal")
 	names := append(strings.Split(cwd, string(filepath.Separator)), project)
 	for _, marker := range strings.Split(markers, ",") {
 		marker = strings.ToLower(strings.TrimSpace(marker))
