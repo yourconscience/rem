@@ -16,7 +16,7 @@ canonical markdown.
 
 ```bash
 # one command: install engine, write config, build the index, verify
-memory/tools/memsearch/install-parity.sh
+memsearch/install-parity.sh
 ```
 
 It is idempotent, so it is safe to re-run. See `install-parity.sh --help` for
@@ -38,7 +38,7 @@ memsearch search "knowledge vault memory" --collection ai   # verify
 The index is disposable; rebuild it whenever it drifts or a machine is new:
 
 ```bash
-memory/tools/memsearch/install-parity.sh --rebuild
+memsearch/install-parity.sh --rebuild
 # equivalently:
 memsearch reset --collection ai --yes        # drop the collection
 memsearch index ~/Workspace/knowledge --collection ai
@@ -57,7 +57,7 @@ derived index current, both refreshing the whole vault into collection `ai`:
 ### Shared reindex contract
 
 Both triggers honor the same contract so they stay coordinated and never step on
-each other (canonical definition: `memory/hooks/common.sh` `refresh_index_async`,
+each other (canonical definition: `hooks/common.sh` `refresh_index_async`,
 mirrored by `knowledge-sync`):
 
 - **Scope:** the notes and profile directories, the `memory/` wiki when it

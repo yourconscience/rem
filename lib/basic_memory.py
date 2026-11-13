@@ -36,7 +36,7 @@ PINS_REMOTE_MAX_AGE_SECS = 3600
 # SessionStart leaves out session text when a project name or cwd segment contains one of these.
 PRIVATE_PROJECTS = {
     name.strip().casefold()
-    for name in os.environ.get("REM_PRIVATE_PROJECTS", "personal,telegram").split(",")
+    for name in os.environ.get("REM_PRIVATE_PROJECTS", "personal").split(",")
     if name.strip()
 }
 
