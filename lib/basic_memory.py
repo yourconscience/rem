@@ -441,7 +441,7 @@ def memory_index_context(cwd: Any, max_bytes: int = MEMORY_INDEX_MAX_BYTES) -> s
     if marker == "### ":
         header = (
             f"Long-term memory from {source}: reviewed entries and an index of pages. "
-            f"[[path]] links start at {root} and omit .md, so [[memory/x]] is {root}/memory/x.md. "
+            "A [[path]] link starts at that file's folder and omits .md, so [[memory/x]] is memory/x.md beside it. "
             "Read a page when a task touches its topic; `rem search` finds the rest.\n"
         )
     else:
