@@ -36,19 +36,26 @@ func normalize(s string) string {
 	return strings.Join(strings.Fields(s), " ")
 }
 
-// knowledgeDir is the vault: KNOWLEDGE_DIR, else rem/vault under the XDG data
-// directory. Only a command that writes creates it, through ensureVault.
+// knowledgeDir is the vault: KNOWLEDGE_DIR, else ~/agent-memory, the path the
+// Agent Memory Repo skill uses. Only a command that writes creates it, through ensureVault.
 func knowledgeDir() string {
 	if d := os.Getenv("KNOWLEDGE_DIR"); d != "" {
 		return d
 	}
-	return filepath.Join(getenvDefault("XDG_DATA_HOME", filepath.Join(homeDir(), ".local", "share")), "rem", "vault")
+	return filepath.Join(homeDir(), "agent-memory")
 }
 
-// ensureVault creates a missing vault before the first write and prints where it is.
+// ensureVault creates a missing or empty vault before the first write, as a valid
+// Agent Memory Repo: a git repository on main with a MEMORY.md skeleton, committed when
+// git has a user name and email. A vault that already has content is used as it is.
+// Git trouble never blocks the capture.
 func ensureVault(root string) error {
-	if _, err := os.Stat(root); !os.IsNotExist(err) {
+	entries, err := os.ReadDir(root)
+	if err != nil && !os.IsNotExist(err) {
 		return err
+	}
+	if len(entries) > 0 {
+		return nil
 	}
 	if err := os.MkdirAll(root, 0o755); err != nil {
 		return err
@@ -57,6 +64,26 @@ func ensureVault(root string) error {
 		root = abs
 	}
 	fmt.Printf("rem: created vault at %s\n", root)
+	if err := os.WriteFile(filepath.Join(root, "MEMORY.md"), []byte("# Memory\n\n## Index\n"), 0o644); err != nil {
+		return err
+	}
+	if out, err := gitIn(root, "init", "-q", "-b", "main"); err != nil {
+		fmt.Fprintf(os.Stderr, "rem: git init failed, so the vault is a plain folder: %v (%s)\n", err, strings.TrimSpace(out))
+		return nil
+	}
+	name, _ := gitIn(root, "config", "--get", "user.name")
+	email, _ := gitIn(root, "config", "--get", "user.email")
+	if strings.TrimSpace(name) == "" || strings.TrimSpace(email) == "" {
+		fmt.Println("rem: git has no user.name and user.email, so MEMORY.md is not committed; set them and commit it")
+		return nil
+	}
+	if out, err := gitIn(root, "add", "MEMORY.md"); err != nil {
+		fmt.Fprintf(os.Stderr, "rem: MEMORY.md is not committed: git add: %v (%s)\n", err, strings.TrimSpace(out))
+		return nil
+	}
+	if out, err := gitIn(root, "commit", "-q", "-m", "Start the memory repo"); err != nil {
+		fmt.Fprintf(os.Stderr, "rem: MEMORY.md is not committed: git commit: %v (%s)\n", err, strings.TrimSpace(out))
+	}
 	return nil
 }
 

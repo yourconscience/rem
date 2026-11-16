@@ -12,7 +12,7 @@ The LaunchAgent should point at the stable installed executable, not at this sou
 
 Configuration is read from environment variables, with defaults in `main.go`:
 
-- `KNOWLEDGE_REPO`, default `$KNOWLEDGE_DIR`, else `${XDG_DATA_HOME:-~/.local/share}/rem/vault`
+- `KNOWLEDGE_REPO`, default `$KNOWLEDGE_DIR`, else `~/agent-memory`
 - `KNOWLEDGE_REMOTE`, default `origin`. If your vault pushes to a non-`origin` remote, set this env var to that remote name.
 - `KNOWLEDGE_BRANCH`, default `main`
 
