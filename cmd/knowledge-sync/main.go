@@ -55,9 +55,8 @@ func main() {
 	if err != nil {
 		fatal("user home", err, "")
 	}
-	// Same vault default as rem: KNOWLEDGE_DIR, else rem/vault under the XDG data directory.
-	repo := getenv("KNOWLEDGE_REPO", getenv("KNOWLEDGE_DIR",
-		filepath.Join(getenv("XDG_DATA_HOME", filepath.Join(home, ".local", "share")), "rem", "vault")))
+	// Same vault default as rem: KNOWLEDGE_DIR, else ~/agent-memory.
+	repo := getenv("KNOWLEDGE_REPO", getenv("KNOWLEDGE_DIR", filepath.Join(home, "agent-memory")))
 	remote := getenv("KNOWLEDGE_REMOTE", "origin")
 	branch := getenv("KNOWLEDGE_BRANCH", "main")
 

@@ -177,6 +177,17 @@ func dreamV2(args []string) error {
 	if out, err := gitIn(root, "worktree", "add", "-q", "-b", branch, worktree, "main"); err != nil {
 		return fmt.Errorf("create %s: %w (%s); merge or delete that branch first", branch, err, out)
 	}
+	// An older vault is migrated on this branch first, so the models see one format.
+	stats, err := migrateTree(worktree)
+	if err != nil {
+		return fmt.Errorf("migrate on %s: %w; nothing committed, see %s", branch, err, worktree)
+	}
+	if stats.Moved {
+		if err := commitAll(worktree, "rem dream "+date+": migrate the vault to the Agent Memory Repo format"); err != nil {
+			return err
+		}
+		fmt.Printf("rem dream: the vault was in the older format, so this branch starts with a migration commit (%d links rewritten)\n", stats.Links)
+	}
 	next := state.Watermark
 	if len(only) == 0 {
 		next = laterTime(next, selected[len(selected)-1].EndedAt)
@@ -198,7 +209,7 @@ func runDream(root, worktree, branch, date, runner, watermark string, parallel i
 		}
 	}
 
-	results, failed := runAnalyzers(memory, runner, parallel, inputs)
+	results, failed := runAnalyzers(memory, runner, parallel, date, inputs)
 	if len(failed) > 0 {
 		return fmt.Errorf("coverage check failed, %d of %d inputs have no analyzer result: %s; nothing committed, see %s",
 			len(failed), len(inputs), strings.Join(failed, ", "), work)
@@ -211,7 +222,19 @@ func runDream(root, worktree, branch, date, runner, watermark string, parallel i
 			return err
 		}
 	}
-	organizerTask := organizerPrompt + "\nResult file: .dream/results/organizer.json\n"
+	// The organizer writes only inside memory/, so it edits a copy of MEMORY.md that rem installs afterwards.
+	indexPath := filepath.Join(worktree, "MEMORY.md")
+	seed, err := os.ReadFile(indexPath)
+	if os.IsNotExist(err) {
+		seed, err = []byte("# Memory\n\n## Index\n"), nil
+	}
+	if err != nil {
+		return err
+	}
+	if err := os.WriteFile(filepath.Join(work, "MEMORY.md"), seed, 0o644); err != nil {
+		return err
+	}
+	organizerTask := organizerPrompt + "\nResult file: .dream/results/organizer.json\nToday: " + date + "\n"
 	if err := runRunner(memory, runner, "organizer", organizerTask); err != nil {
 		return fmt.Errorf("organizer: %w; nothing committed, see %s", err, work)
 	}
@@ -222,6 +245,13 @@ func runDream(root, worktree, branch, date, runner, watermark string, parallel i
 	proposals, err := readProposals(filepath.Join(work, "proposals.jsonl"))
 	if err != nil {
 		return fmt.Errorf("organizer proposals: %w; nothing committed, see %s", err, work)
+	}
+	index, err := os.ReadFile(filepath.Join(work, "MEMORY.md"))
+	if err != nil || strings.TrimSpace(string(index)) == "" {
+		return fmt.Errorf("organizer left no MEMORY.md; nothing committed, see %s", work)
+	}
+	if err := os.WriteFile(indexPath, index, 0o644); err != nil {
+		return err
 	}
 
 	if err := os.RemoveAll(work); err != nil {
@@ -247,7 +277,7 @@ func runDream(root, worktree, branch, date, runner, watermark string, parallel i
 	if err != nil {
 		return err
 	}
-	warnings := checkMemoryPages(memory)
+	warnings := checkMemoryPages(worktree)
 	report := renderDreamReport(date, branch, selected, inputs, results, organizer, proposals, skipped, warnings, memoryBytes(memory), rendered, agentsPatch)
 	reportPath := filepath.Join(worktree, "reviews", "rem-dream-v2-"+date+".md")
 	if err := os.MkdirAll(filepath.Dir(reportPath), 0o755); err != nil {
@@ -257,7 +287,7 @@ func runDream(root, worktree, branch, date, runner, watermark string, parallel i
 		return err
 	}
 
-	if err := commitDream(worktree, "rem dream "+date+": read "+fmt.Sprint(len(selected))+" sessions", "memory", "reviews"); err != nil {
+	if err := commitDream(worktree, "rem dream "+date+": read "+fmt.Sprint(len(selected))+" sessions", "MEMORY.md", "memory", "reviews"); err != nil {
 		return err
 	}
 	if applied > 0 {
@@ -647,7 +677,7 @@ func readDreamResult(path string) (dreamResult, error) {
 
 // runAnalyzers runs one analyzer per input and retries each once. An input counts
 // as read only when its result file exists and parses.
-func runAnalyzers(memory, runner string, parallel int, inputs []dreamInput) (map[string]dreamResult, []string) {
+func runAnalyzers(memory, runner string, parallel int, date string, inputs []dreamInput) (map[string]dreamResult, []string) {
 	results := map[string]dreamResult{}
 	var failed []string
 	var mu sync.Mutex
@@ -660,7 +690,7 @@ func runAnalyzers(memory, runner string, parallel int, inputs []dreamInput) (map
 			slots <- struct{}{}
 			defer func() { <-slots }()
 			resultPath := filepath.Join(memory, ".dream", "results", in.Key+".json")
-			task := fmt.Sprintf("%s\nInput file: .dream/inputs/%s.txt\nResult file: .dream/results/%s.json\n", analyzerPrompt, in.Key, in.Key)
+			task := fmt.Sprintf("%s\nInput file: .dream/inputs/%s.txt\nResult file: .dream/results/%s.json\nToday: %s\n", analyzerPrompt, in.Key, in.Key, date)
 			for attempt := 1; attempt <= 2; attempt++ {
 				err := runRunner(memory, runner, fmt.Sprintf("%s.%d", in.Key, attempt), task)
 				result, readErr := readDreamResult(resultPath)
@@ -877,10 +907,40 @@ func memoryPages(memory string) []string {
 	return pages
 }
 
-func checkMemoryPages(memory string) []string {
+var (
+	indexHeadingLineRe = regexp.MustCompile(`(?m)^## Index\s*$`)
+	linkTargetRe       = regexp.MustCompile(`\[\[([^\[\]|#]+)`)
+)
+
+// linkResolves accepts both link forms: a path from the vault root, and a bare slug
+// from before the migration, which names a page in memory/.
+func linkResolves(root, target string) bool {
+	target = filepath.FromSlash(strings.TrimSpace(target))
+	for _, path := range []string{target, target + ".md", filepath.Join("memory", target+".md")} {
+		if info, err := os.Stat(filepath.Join(root, path)); err == nil && !info.IsDir() {
+			return true
+		}
+	}
+	return false
+}
+
+// checkMemoryPages reports problems in the worktree's memory: a missing or misshapen
+// MEMORY.md, oversize pages, links that resolve to nothing, and live pages the index omits.
+func checkMemoryPages(root string) []string {
 	var warnings []string
-	if _, err := os.Stat(filepath.Join(memory, "_index.md")); err != nil {
-		warnings = append(warnings, "`_index.md` is missing")
+	memory := filepath.Join(root, "memory")
+	indexed := map[string]bool{}
+	index, err := os.ReadFile(filepath.Join(root, "MEMORY.md"))
+	if err != nil {
+		warnings = append(warnings, "`MEMORY.md` is missing")
+	} else {
+		if !indexHeadingLineRe.Match(index) {
+			warnings = append(warnings, "`MEMORY.md` has no `## Index` heading")
+		}
+		for _, m := range linkTargetRe.FindAllStringSubmatch(string(index), -1) {
+			indexed[strings.TrimSpace(m[1])] = true
+		}
+		warnings = append(warnings, brokenLinks(root, "MEMORY.md", string(index))...)
 	}
 	for _, path := range memoryPages(memory) {
 		rel, _ := filepath.Rel(memory, path)
@@ -895,11 +955,29 @@ func checkMemoryPages(memory string) []string {
 		if strings.HasPrefix(strings.TrimSpace(string(data)), "MOVED TO") {
 			continue
 		}
-		if !strings.HasPrefix(string(data), "---\n") {
-			warnings = append(warnings, rel+": no frontmatter")
+		slug := strings.TrimSuffix(filepath.ToSlash(rel), ".md")
+		if !indexed["memory/"+slug] && !indexed[slug] {
+			warnings = append(warnings, rel+": not listed in `MEMORY.md`")
 		}
+		warnings = append(warnings, brokenLinks(root, "memory/"+filepath.ToSlash(rel), string(data))...)
 	}
 	return warnings
+}
+
+func brokenLinks(root, name, text string) []string {
+	var broken []string
+	for _, m := range linkTargetRe.FindAllStringSubmatch(text, -1) {
+		if !linkResolves(root, m[1]) {
+			broken = append(broken, "[["+strings.TrimSpace(m[1])+"]]")
+		}
+	}
+	if len(broken) == 0 {
+		return nil
+	}
+	if len(broken) > 5 {
+		broken = append(broken[:5], fmt.Sprintf("and %d more", len(broken)-5))
+	}
+	return []string{fmt.Sprintf("%s: links that resolve to nothing: %s", name, strings.Join(broken, ", "))}
 }
 
 func memoryBytes(memory string) int {
@@ -1006,5 +1084,5 @@ func commitDream(worktree, message string, paths ...string) error {
 }
 
 func allowedDreamPath(file string) bool {
-	return strings.HasPrefix(file, "memory/") || strings.HasPrefix(file, "reviews/rem-dream-v2-") || file == "profile/USER.md"
+	return file == "MEMORY.md" || strings.HasPrefix(file, "memory/") || strings.HasPrefix(file, "reviews/rem-dream-v2-") || file == "profile/USER.md"
 }

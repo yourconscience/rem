@@ -16,7 +16,7 @@ load_memory_config() {
     . "$CONF"
   fi
 
-  export KNOWLEDGE_DIR="${KNOWLEDGE_DIR_ENV:-${KNOWLEDGE_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/rem/vault}}"
+  export KNOWLEDGE_DIR="${KNOWLEDGE_DIR_ENV:-${KNOWLEDGE_DIR:-$HOME/agent-memory}}"
   export SESSIONS_DIR="${SESSIONS_DIR_ENV:-${SESSIONS_DIR:-$KNOWLEDGE_DIR/sessions}}"
   export NOTES_DIR="${NOTES_DIR_ENV:-${NOTES_DIR:-$KNOWLEDGE_DIR/notes}}"
   export PROFILE_DIR="${PROFILE_DIR_ENV:-${PROFILE_DIR:-$KNOWLEDGE_DIR/profile}}"

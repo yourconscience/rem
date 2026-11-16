@@ -48,7 +48,7 @@ def safe_identifier(value: object, *, fallback: str = "unknown", limit: int = 96
 def knowledge_dir_from_environment() -> Path:
     value = os.environ.get("KNOWLEDGE_DIR")
     if not value or not value.strip():
-        value = os.path.join(os.environ.get("XDG_DATA_HOME") or "~/.local/share", "rem", "vault")
+        value = "~/agent-memory"
     return Path(os.path.expanduser(value)).resolve()
 
 
