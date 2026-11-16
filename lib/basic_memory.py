@@ -406,16 +406,26 @@ def build_pins_context(pins: list[dict[str, Any]], exclude_id: str | None, max_c
 
 
 def memory_index_context(cwd: Any, max_bytes: int = MEMORY_INDEX_MAX_BYTES) -> str:
-    """Head of memory/_index.md, the current project's sections first, cut on a line boundary."""
-    memory_dir = knowledge_dir_from_environment() / "memory"
+    """Head of MEMORY.md at the vault root, else of the older memory/_index.md.
+
+    The current project's groups come first, and the text is cut on a line boundary.
+    Groups are the `### ` headings under `## Index` in MEMORY.md and the `## `
+    headings of the older index.
+    """
+    root = knowledge_dir_from_environment()
+    source, marker = root / "MEMORY.md", "### "
     try:
-        text = (memory_dir / "_index.md").read_text(encoding="utf-8")
+        text = source.read_text(encoding="utf-8")
     except (OSError, UnicodeDecodeError):
-        return ""
+        source, marker = root / "memory" / "_index.md", "## "
+        try:
+            text = source.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            return ""
     preamble: list[str] = []
     sections: list[list[str]] = []
     for line in redact_text(text).splitlines():
-        if line.startswith("## "):
+        if line.startswith(marker):
             sections.append([line])
         elif sections:
             sections[-1].append(line)
@@ -424,14 +434,21 @@ def memory_index_context(cwd: Any, max_bytes: int = MEMORY_INDEX_MAX_BYTES) -> s
     cwd_parts = {part.casefold() for part in Path(str(cwd or "")).parts}
 
     def is_current(section: list[str]) -> bool:
-        heading = section[0][3:].strip().casefold()
+        heading = section[0][len(marker):].strip().casefold()
         return heading.startswith("project:") and heading.removeprefix("project:").strip() in cwd_parts
 
     ordered = preamble + [line for section in sorted(sections, key=is_current, reverse=True) for line in section]
-    header = (
-        f"Long-term memory index from {memory_dir}: reviewed pages, one per topic. "
-        "Read a page when a task touches its topic; `rem search` finds the rest.\n"
-    )
+    if marker == "### ":
+        header = (
+            f"Long-term memory from {source}: reviewed entries and an index of pages. "
+            f"[[path]] links start at {root} and omit .md, so [[memory/x]] is {root}/memory/x.md. "
+            "Read a page when a task touches its topic; `rem search` finds the rest.\n"
+        )
+    else:
+        header = (
+            f"Long-term memory index from {source.parent}: reviewed pages, one per topic. "
+            "Read a page when a task touches its topic; `rem search` finds the rest.\n"
+        )
     kept: list[str] = []
     size = len(header.encode())
     for line in ordered:
@@ -440,7 +457,7 @@ def memory_index_context(cwd: Any, max_bytes: int = MEMORY_INDEX_MAX_BYTES) -> s
             break
         kept.append(line)
     body = "\n".join(kept).strip()
-    return header + body if "[[" in body else ""
+    return header + body if re.search(r"\[\[|^\s*[-*] ", body, re.M) else ""
 
 
 def compaction_note(session_id: str) -> str:
