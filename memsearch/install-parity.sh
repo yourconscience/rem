@@ -18,13 +18,13 @@
 #   install-parity.sh [--rebuild] [--no-verify]
 #
 # Environment:
-#   KNOWLEDGE_DIR         vault root         (default: ~/Workspace/knowledge)
+#   KNOWLEDGE_DIR         vault root         (default: ${XDG_DATA_HOME:-~/.local/share}/rem/vault)
 #   MEMSEARCH_COLLECTION  collection name    (default: ai)
 #   MEMSEARCH_HOME        engine state dir   (default: ~/.memsearch)
 
 set -euo pipefail
 
-KNOWLEDGE_DIR="${KNOWLEDGE_DIR:-$HOME/Workspace/knowledge}"
+KNOWLEDGE_DIR="${KNOWLEDGE_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/rem/vault}"
 COLLECTION="${MEMSEARCH_COLLECTION:-ai}"
 MEMSEARCH_HOME="${MEMSEARCH_HOME:-$HOME/.memsearch}"
 

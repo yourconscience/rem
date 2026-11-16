@@ -36,15 +36,28 @@ func normalize(s string) string {
 	return strings.Join(strings.Fields(s), " ")
 }
 
+// knowledgeDir is the vault: KNOWLEDGE_DIR, else rem/vault under the XDG data
+// directory. Only a command that writes creates it, through ensureVault.
 func knowledgeDir() string {
 	if d := os.Getenv("KNOWLEDGE_DIR"); d != "" {
 		return d
 	}
-	home, err := os.UserHomeDir()
-	if err != nil {
-		fatal("user home", err, "")
+	return filepath.Join(getenvDefault("XDG_DATA_HOME", filepath.Join(homeDir(), ".local", "share")), "rem", "vault")
+}
+
+// ensureVault creates a missing vault before the first write and prints where it is.
+func ensureVault(root string) error {
+	if _, err := os.Stat(root); !os.IsNotExist(err) {
+		return err
 	}
-	return filepath.Join(home, "Workspace", "knowledge")
+	if err := os.MkdirAll(root, 0o755); err != nil {
+		return err
+	}
+	if abs, err := filepath.Abs(root); err == nil {
+		root = abs
+	}
+	fmt.Printf("rem: created vault at %s\n", root)
+	return nil
 }
 
 func today() string { return time.Now().Format("2006-01-02") }
@@ -104,6 +117,9 @@ func cmdAdd(args []string) error {
 		}
 	}
 
+	if err := ensureVault(root); err != nil {
+		return err
+	}
 	if err := os.MkdirAll(inbox, 0o755); err != nil {
 		return err
 	}
@@ -362,6 +378,12 @@ func cmdSync() error {
 			return err
 		}
 		bin = filepath.Join(home, ".local", "bin", "knowledge-sync")
+		// go install and release archives put it elsewhere on PATH.
+		if _, err := os.Stat(bin); err != nil {
+			if found, err := exec.LookPath("knowledge-sync"); err == nil {
+				bin = found
+			}
+		}
 	}
 	if _, err := os.Stat(bin); err != nil {
 		return fmt.Errorf("knowledge-sync not found at %s: %w", bin, err)

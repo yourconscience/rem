@@ -42,9 +42,9 @@ Proposed changes to `profile/USER.md` land as a separate commit. Changes to
 
 Environment:
 
-- `KNOWLEDGE_DIR` — vault root (default `~/Workspace/knowledge`)
-- `REM_SYNC_BIN` — alternate `knowledge-sync` binary
-- `REM_COLLECTION` — collection for `rem search` (default `ai`)
-- `REM_DREAM_RUNNER`, `REM_DREAM_MODEL`, `REM_AGENTS_MD` — see the root README
+- `KNOWLEDGE_DIR`: vault root (default `${XDG_DATA_HOME:-~/.local/share}/rem/vault`, created on the first write)
+- `REM_SYNC_BIN`: alternate `knowledge-sync` binary
+- `REM_COLLECTION`: collection for `rem search` (default `ai`)
+- `REM_DREAM_RUNNER`, `REM_DREAM_MODEL`, `REM_AGENTS_MD`: see the root README
 
 Tests are included in the root module and run with `go test ./...`.

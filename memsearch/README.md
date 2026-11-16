@@ -29,7 +29,7 @@ What it does, equivalently by hand:
 uv tool install 'memsearch[onnx]'                 # local ONNX embeddings
 memsearch config set embedding.provider onnx
 memsearch config set milvus.collection ai
-memsearch index ~/Workspace/knowledge --collection ai
+memsearch index "$KNOWLEDGE_DIR" --collection ai
 memsearch search "knowledge vault memory" --collection ai   # verify
 ```
 
@@ -41,7 +41,7 @@ The index is disposable; rebuild it whenever it drifts or a machine is new:
 memsearch/install-parity.sh --rebuild
 # equivalently:
 memsearch reset --collection ai --yes        # drop the collection
-memsearch index ~/Workspace/knowledge --collection ai
+memsearch index "$KNOWLEDGE_DIR" --collection ai
 ```
 
 ## Keeping the index fresh (no cron)
