@@ -64,6 +64,7 @@ func today() string { return time.Now().Format("2006-01-02") }
 
 // cmdAdd writes one note to memory/_inbox, skipping facts already captured there or
 // in the legacy ai/ queue. Inbox notes are searchable at once and never injected.
+// The note body is an Agent Memory Repo entry line.
 func cmdAdd(args []string) error {
 	src := ""
 	var rest []string
@@ -156,20 +157,30 @@ func noteFileName(now time.Time, fact string) string {
 	return fmt.Sprintf("%s-%s-%x.md", now.Format("20060102T150405Z"), slug, sum[:2])
 }
 
+// renderNote writes the frontmatter rem reads back (harness, cwd, created) and the
+// fact as one entry line: `- <fact> [source: <harness>; added: YYYY-MM-DD]`.
 func renderNote(fact, src, cwd string, now time.Time) string {
 	if src == "" {
 		src = "manual"
 	}
 	var b strings.Builder
 	b.WriteString("---\n")
-	fmt.Fprintf(&b, "name: %s\n", strings.TrimSuffix(noteFileName(now, fact), ".md"))
-	fmt.Fprintf(&b, "description: %s\n", strconv.Quote(truncate(fact, 120)))
-	b.WriteString("metadata:\n  type: note\n  status: unreviewed\n")
-	fmt.Fprintf(&b, "  harness: %s\n  cwd: %s\n  created: %s\n", strconv.Quote(src), strconv.Quote(cwd), now.Format(time.RFC3339))
+	fmt.Fprintf(&b, "harness: %s\ncwd: %s\ncreated: %s\n", strconv.Quote(src), strconv.Quote(cwd), now.Format(time.RFC3339))
 	b.WriteString("---\n\n")
-	b.WriteString(fact)
-	b.WriteString("\n")
+	fmt.Fprintf(&b, "- %s [source: %s; added: %s]\n", strings.Join(strings.Fields(fact), " "), src, now.Local().Format("2006-01-02"))
 	return b.String()
+}
+
+var entryMetaRe = regexp.MustCompile(`\s*\[[^\[\]]*\]\s*$`)
+
+// entryText is the fact in an inbox note body: the entry line without its bullet and
+// trailing metadata. A body in the older plain form is returned as it is.
+func entryText(body string) string {
+	rest, ok := strings.CutPrefix(strings.TrimSpace(body), "- ")
+	if !ok {
+		return body
+	}
+	return strings.TrimSpace(entryMetaRe.ReplaceAllString(rest, ""))
 }
 
 func frontmatterValue(frontmatter, key string) string {
@@ -332,7 +343,7 @@ func matchInbox(notes []inboxNote, query string, limit int) []inboxNote {
 	}
 	var matched []scored
 	for _, n := range notes {
-		body := tokens(n.Body)
+		body := tokens(entryText(n.Body))
 		score := 0
 		for w := range words {
 			if body[w] {
