@@ -12,7 +12,7 @@ The LaunchAgent should point at the stable installed executable, not at this sou
 
 Configuration is read from environment variables, with defaults in `main.go`:
 
-- `KNOWLEDGE_REPO`, default `$KNOWLEDGE_DIR` or `~/Workspace/knowledge`
+- `KNOWLEDGE_REPO`, default `$KNOWLEDGE_DIR`, else `${XDG_DATA_HOME:-~/.local/share}/rem/vault`
 - `KNOWLEDGE_REMOTE`, default `origin`. If your vault pushes to a non-`origin` remote, set this env var to that remote name.
 - `KNOWLEDGE_BRANCH`, default `main`
 
@@ -39,8 +39,8 @@ identity. To pin the identity for the unattended LaunchAgent, do **one** of:
 
 ```bash
 # a) repo-local config on the vault (survives launchd's minimal env)
-git -C ~/Workspace/knowledge config user.name  "Your Name"
-git -C ~/Workspace/knowledge config user.email "you@example.com"
+git -C "$KNOWLEDGE_DIR" config user.name  "Your Name"
+git -C "$KNOWLEDGE_DIR" config user.email "you@example.com"
 
 # b) or set the dedicated env in ~/Library/LaunchAgents/knowledge-sync.plist
 #    KNOWLEDGE_GIT_AUTHOR_NAME / KNOWLEDGE_GIT_AUTHOR_EMAIL

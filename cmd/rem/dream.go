@@ -275,6 +275,9 @@ func dreamReport([]string) error {
 	}
 
 	outPath := filepath.Join(root, "reviews", "rem-dream-"+today()+".md")
+	if err := ensureVault(root); err != nil {
+		return err
+	}
 	if err := os.MkdirAll(filepath.Dir(outPath), 0o755); err != nil {
 		return err
 	}

@@ -63,7 +63,7 @@ Run `knowledge-sync` on a schedule to keep the vault synced. See [cmd/rem](cmd/r
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `KNOWLEDGE_DIR` | `~/Workspace/knowledge` | The vault |
+| `KNOWLEDGE_DIR` | `${XDG_DATA_HOME:-~/.local/share}/rem/vault` | The vault, created by the first `rem` command that writes to it |
 | `KNOWLEDGE_REMOTE` | `origin` | Remote for `knowledge-sync` and `rem sync` |
 | `KNOWLEDGE_BRANCH` | `main` | Branch for `knowledge-sync` |
 | `KNOWLEDGE_CONF` | `~/.config/rem/memsearch.conf` | Optional shell file that sets the vault and memsearch paths |
