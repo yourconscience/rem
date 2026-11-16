@@ -378,6 +378,12 @@ func cmdSync() error {
 			return err
 		}
 		bin = filepath.Join(home, ".local", "bin", "knowledge-sync")
+		// go install and release archives put it elsewhere on PATH.
+		if _, err := os.Stat(bin); err != nil {
+			if found, err := exec.LookPath("knowledge-sync"); err == nil {
+				bin = found
+			}
+		}
 	}
 	if _, err := os.Stat(bin); err != nil {
 		return fmt.Errorf("knowledge-sync not found at %s: %w", bin, err)
