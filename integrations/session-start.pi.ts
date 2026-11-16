@@ -1,5 +1,7 @@
 // Runs the rem SessionStart hook with a Claude Code-style JSON payload on stdin.
 // additionalContext reaches the model with the next prompt.
+// For registering by hand: copy to ~/.pi/agent/extensions/rem-session-start.ts.
+// tackroom generates an equivalent module, so tackroom users do not need this file.
 import { spawn } from "node:child_process";
 
 const command = '${REM_HOME:-$HOME/.local/share/rem}/hooks/session-start.sh';

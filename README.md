@@ -31,21 +31,25 @@ Installing only copies files. No hook runs until you register it.
 
 ## Register the hook
 
-### With skillshare
+### With tackroom
 
-```bash
-mkdir -p ~/.config/skillshare/rem
-cp integrations/skillshare/session-start.* ~/.config/skillshare/rem/
-skillshare hooks add rem-session-start --file ~/.config/skillshare/rem/session-start.yaml
-skillshare hooks sync --dry-run
-skillshare hooks sync
+Add the hook to `hooks:` in your `tackroom.yaml` and run `tackroom sync`:
+
+```yaml
+hooks:
+  - name: rem-session-start
+    enabled: true
+    event: SessionStart
+    command: ~/.local/share/rem/hooks/session-start.sh
+    timeout: 15
+    agents: [claude, codex, pi, omp]
 ```
 
-This covers Claude Code, Codex, Factory Droid, Pi and OMP. Delete the bindings you don't use. See [the companion setup](integrations/skillshare/README.md) for Codex roles and the `universal` target.
+tackroom writes Pi and OMP a generated module, so the files in `integrations/` are not needed.
 
 ### By hand
 
-Any harness that accepts a command hook can run `~/.local/share/rem/hooks/session-start.sh` on session start. It reads the hook's JSON payload on stdin and prints a `hookSpecificOutput.additionalContext` reply. Harnesses that run hooks as code, such as Pi and OMP, can use the modules in `integrations/skillshare/`.
+Any harness that accepts a command hook can run `~/.local/share/rem/hooks/session-start.sh` on session start. It reads the hook's JSON payload on stdin and prints a `hookSpecificOutput.additionalContext` reply. Pi and OMP run hooks as TypeScript modules: copy `integrations/session-start.pi.ts` to `~/.pi/agent/extensions/rem-session-start.ts`, or `integrations/session-start.omp.ts` to `~/.omp/agent/hooks/post/rem-session-start.ts`.
 
 ## Use
 
@@ -71,7 +75,7 @@ Run `knowledge-sync` on a schedule to keep the vault synced. See [cmd/rem](cmd/r
 | `REM_DREAM_RUNNER` | `claude` | Headless runner for `rem dream --v2`; only `claude` is supported so far |
 | `REM_DREAM_MODEL` | `haiku` | Model for the dream |
 | `REM_AGENTS_MD` | `~/.agents/AGENTS.md` | The file a dream reads and writes patches for |
-| `REM_HOME` | `~/.local/share/rem` | Where the Pi and OMP modules look for the hook |
+| `REM_HOME` | `~/.local/share/rem` | Where `rem install` writes the hook and its library; the Pi and OMP modules in `integrations/` look there |
 | `AGENTSVIEW_BIN` | found on `PATH` | Tool override |
 
 ## Development
