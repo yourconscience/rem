@@ -128,7 +128,7 @@ func cmdAdd(args []string) error {
 	fp := normalize(fact)
 	if fp != "" {
 		for _, n := range notes {
-			if normalize(n.Body) == fp {
+			if normalize(entryText(n.Body)) == fp {
 				fmt.Printf("rem add: already captured in %s\n", n.Path)
 				return nil
 			}
