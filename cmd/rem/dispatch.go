@@ -41,6 +41,8 @@ func main() {
 		err = cmdSync()
 	case "dream":
 		err = cmdDream(args)
+	case "migrate":
+		err = cmdMigrate(args)
 	case "install":
 		err = cmdInstall(args)
 	case "hook":
@@ -79,6 +81,7 @@ usage:
   rem search "<query>"              inbox matches plus semantic search (memsearch, collection ai)
   rem dream [--apply]               v1 consolidation report; --apply collapses exact dups
   rem dream --v2 [flags]            LLM dream over AgentsView transcripts, onto a vault branch
+  rem migrate                       move an older vault to MEMORY.md on a rem-migrate/<date> branch
   rem sync                          commit+merge+push via guarded knowledge-sync
   rem install                       materialize hooks/ and lib/ into $REM_HOME
   rem hook session-start            print the session-start hook command
